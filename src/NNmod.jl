@@ -18,7 +18,6 @@ module S
 
     immutable NN{n}
         ws::NTuple{n, Matrix{Float64}}
-        dws::NTuple{n, Matrix{Float64}} # holds the gradient
         ns::NTuple{n, NodeFunc}
         ls::NTuple{Int}
 
@@ -30,7 +29,7 @@ module S
             end
             
             ls = tuple([ size(w,1) for w in ws ]...)
-            new(ws, map(similar, ws), ns, ls)
+            new(ws, ns, ls)
         end
     end   
 
@@ -41,33 +40,49 @@ module S
     depth{n}(nn::NN{n}) = n
 
 
-    type NNState{n,m}
+    type TrainState{n,m}
         ss::NTuple{n, Array{Float64}}
-        as::NTuple{n, Array{Float64}} # holds the activation (useful for gradient calc)
+        as::NTuple{n, Array{Float64}}   # holds the activation (necessary for gradient calc)
+        dws::NTuple{n, Matrix{Float64}} # holds the gradient of weight matrices
         ls::NTuple{Int}
-
-        function NNState(ss::NTuple{n, Array{Float64}})
-            if ndims(ss[1]) == 1  # single sample
-                @assert all([map(ndims, ss)...] .== 1) "incompatible # samples"
-                ls = tuple([ size(s,1) for s in ss]...)
-                new(ss, map(similar,ss), ls)
-            elseif ndims(ss[1]) == 2  # multiple samples
-                @assert all([map(ndims, ss)...] .== 2) "incompatible # samples"
-                nsa = size(ss[1],2)
-                @assert all(map(x->size(x,2), ss) .== nsa) "incompatible # samples"
-                ls = tuple([ size(s,1) for s in ss]...)
-                new(ss, map(similar,ss), ls)
-            end
-        end
     end   
 
-    NNState{n}(ss::NTuple{n, Vector{Float64}}) = NNState{n, 1}(ss)
-    NNState{n}(ss::NTuple{n, Matrix{Float64}}) = NNState{n, size(ss[1],2)}(ss)
+    # function TrainState(ss::NTuple{n, Array{Float64}}, inputsize)
+    #     if ndims(ss[1]) == 1  # single sample
+    #         @assert all([map(ndims, ss)...] .== 1) "incompatible # samples"
+    #         nsa = 1
+    #     elseif ndims(ss[1]) == 2  # multiple samples
+    #         @assert all([map(ndims, ss)...] .== 2) "incompatible # samples"
+    #         nsa = size(ss[1],2)
+    #         @assert all(map(x->size(x,2), ss) .== nsa) "incompatible # samples"
+    #     end
 
-    compatible(nn::NN, ss::NNState) = size(nn) == size(ss)
+    #     ls = tuple([ size(s,1) for s in ss]...)
+    #     dws = tuple( )
+    #         new(ss, map(similar,ss), ls)
+    #         ls = tuple([ size(s,1) for s in ss]...)
+    #         new(ss, map(similar,ss), ls)
+    #     end
+    # end
 
-    size(ss::NNState) = ss.ls
-    nsamples{n,m}(ss::NNState{n,m}) = m
+    # creates a TrainState adapted to a given Neural net and # of samples
+    function TrainState(nn::NN, nsamples) # nsamples = 3
+        siz = size(nn)
+        ss  = tuple([ Array(Float64, s, nsamples) for s in siz]...)
+        dws = tuple(Array(Float64, siz[1], inputsize(nn)),
+                    [Array(Float64, siz[i], siz[i-1]) for i in 2:length(siz)]...)
+
+        TrainState{depth(nn),nsamples}(ss, map(similar,ss), dws, ls)
+    end    
+    
+
+    # TrainState{n}(ss::NTuple{n, Vector{Float64}}) = TrainState{n, 1}(ss)
+    # TrainState{n}(ss::NTuple{n, Matrix{Float64}}) = TrainState{n, size(ss[1],2)}(ss)
+
+    compatible(nn::NN, ss::TrainState) = size(nn) == size(ss)
+
+    size(ss::TrainState) = ss.ls
+    nsamples{n,m}(ss::TrainState{n,m}) = m
 
     function forward(nn::NN, input::AbstractArray{Real}) # input = rand(20)
         if ndims(input) == 1
@@ -76,10 +91,10 @@ module S
             nsa = size(input,2)
             ss = tuple([ Array(Float64, sz, nsa) for sz in size(nn)[2:end]]...)
         end
-        calc!(NNState(ss), nn, input)
+        calc!(TrainState(ss), nn, input)
     end
 
-    function forward!{n,m}(ss::NNState{n,m}, nn::NN{n}, input::AbstractArray{float64})
+    function forward!{n,m}(ss::TrainState{n,m}, nn::NN{n}, input::AbstractArray{Float64})
         @assert compatible(nn,ss) "incompatible network and state"
         @assert size(input,1) == inputsize(nn) "incompatible size of input and network"
         if ndims(input) == 1
@@ -98,7 +113,7 @@ module S
         ss
     end
 
-    function backward!{n,m}(nn2::NN{n}, ss::NNState{n,m}, nn::NN{n})
+    function backward!{n,m}(nn2::NN{n}, ss::TrainState{n,m}, nn::NN{n})
         @assert compatible(nn,ss) "incompatible network and state"
         @assert compatible(nn2,ss) "incompatible network and state"
         @assert size(input,1) == inputsize(nn) "incompatible size of input and network"
