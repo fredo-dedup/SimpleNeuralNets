@@ -5,11 +5,17 @@ module SimpleNeuralNets
 
 
     import Base: size
-    export size, calc, cycle, cycle!
+    export NN, 
+           size, depth, inputsize, nsamples,
+           cycle, cycle!, calc,
+           Sigmoid, Tanh, Relu, SoftRelu,
+           sgd
+
 
     include("nodefunc.jl")
     include("net.jl")
     include("state.jl")
     include("metrics.jl")
+    include("solvers.jl")
 
 end # module

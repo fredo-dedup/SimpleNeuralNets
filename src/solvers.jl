@@ -1,24 +1,24 @@
-X = vars'
-Y = res'
-subset=idx; minibatch=100; steps=100; freq=0; noise=0.
-λ0 = 1e-3
-nn = S.NN((randn(10,19), randn(1,10)), (S.Relu(), S.Relu()))
-μ = 0.999
+# X = vars'
+# Y = res'
+# subset=idx; minibatch=100; steps=100; freq=0; noise=0.
+# λ0 = 1e-3
+# nn = S.NN((randn(10,19), randn(1,10)), (S.Relu(), S.Relu()))
+# μ = 0.999
 
 
-nn = S.NN((randn(10,19), randn(10,10), randn(1,10)), (S.Relu(), S.Relu(), S.Relu()))
-nn = S.NN((ls...,), (S.Relu(), S.Relu(), S.Relu()))
+# nn = S.NN((randn(10,19), randn(10,10), randn(1,10)), (S.Relu(), S.Relu(), S.Relu()))
+# nn = S.NN((ls...,), (S.Relu(), S.Relu(), S.Relu()))
 
-sgd(nn, λ0, μ, X, Y, subset=idx, freq=200, steps=10000)
+# sgd(nn, λ0, μ, X, Y, subset=idx, freq=200, steps=10000)
 
-@time sgd(nn, λ0, μ, X, Y, freq=200, steps=1000)
-@time sgd(nn, λ0, μ, X, Y, freq=0, steps=1000)
+# @time sgd(nn, λ0, μ, X, Y, freq=200, steps=1000)
+# @time sgd(nn, λ0, μ, X, Y, freq=0, steps=1000)
 
 
-function sgd(nn::S.NN, λ0, μ, X, Y; 
+function sgd(nn::NN, λ0, μ, X, Y; 
     subset=0, minibatch=100, steps=100, freq=0, noise=0.)
 
-    state = S.TrainState(nn, minibatch)
+    state = TrainState(nn, minibatch)
     dls = Array[ zeros(w) for w in nn.ws ] 
 
     (subset==0) && (subset = shuffle(collect(1:size(X,2))))
@@ -26,21 +26,21 @@ function sgd(nn::S.NN, λ0, μ, X, Y;
     pos = 1 # pos = 47501
     for k in 0:steps-1
         if pos + minibatch > length(subset)
-            rg = idx[pos:end]
+            rg = subset[pos:end]
             pos = pos + minibatch - length(subset)
-            rg = vcat(rg, idx[1:pos-1])
+            rg = vcat(rg, subset[1:pos-1])
         else 
-            rg = idx[pos:pos+minibatch-1]
+            rg = subset[pos:pos+minibatch-1]
             pos += minibatch
         end
 
-        S.cycle!(state, nn, X[:,rg], Y[:,rg])
+        cycle!(state, nn, X[:,rg], Y[:,rg])
         # isnan(state, out[1]) && break
 
         l2norm = sqrt(sum( map(sumabs2, state.dws ) ) )
         λ    = - λ0 * (l2norm > 1. ? 1. / l2norm : 1.)
 
-        for j in 1:S.depth(nn) # j = 1
+        for j in 1:depth(nn) # j = 1
             for l in 1:length(nn.ws[j])
                 tmp = λ * (1-μ) * state.dws[j][l] + μ * dls[j][l]
                 nn.ws[j][l] += tmp
@@ -49,7 +49,7 @@ function sgd(nn::S.NN, λ0, μ, X, Y;
         end
 
         if freq > 0 && (k % freq == 0)
-            pred = S.calc(nn, X)
+            pred = calc(nn, X)
             m = mean(pred - Y)
             s = std(pred - Y)
             println("k : $k λ : $(round(λ0,4)) mean : $(round(m,5)) stderr : $(round(s,5))")
