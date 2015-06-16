@@ -2,8 +2,8 @@ module SimpleNeuralNets
 
     using Reexport
     @reexport using Distances
-
-
+    using ArrayViews
+    
     import Base: size
     export NN, 
            size, depth, inputsize, nsamples,

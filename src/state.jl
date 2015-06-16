@@ -11,8 +11,8 @@ end
 # creates a TrainState adapted to a given Neural net and # of samples
 function TrainState(nn::NN, nsamples::Int) # nsamples = 3
     siz = size(nn)
-    ss  = tuple([ Array(Float64, s, nsamples) for s in siz]...)
-    dws = tuple(Array(Float64, siz[1], inputsize(nn)),
+    ss  = tuple([Array(Float64, s, nsamples) for s in siz]...)
+    dws = tuple( Array(Float64, siz[1], inputsize(nn)),
                 [Array(Float64, siz[i], siz[i-1]) for i in 2:length(siz)]...)
 
     TrainState{depth(nn),nsamples}(ss, 
@@ -27,18 +27,18 @@ compatible(nn::NN, ss::TrainState) = size(nn) == size(ss)
 size(ss::TrainState) = ss.ls
 nsamples{n,m}(ss::TrainState{n,m}) = m
 
-function cycle(nn::NN, 
-               input::AbstractArray{Float64},
-               output::AbstractArray{Float64};
-               opts...) # input = rand(20)
+function cycle{T<:FloatingPoint}(nn::NN, 
+    input::StridedArray{T},
+    output::StridedArray{T};
+    opts...) # input = rand(20)
     cycle!(TrainState(nn, size(input,2)), nn, input, output; opts...)
 end
 
-function cycle!{n,m}(s::TrainState{n,m}, 
-                     net::NN{n}, 
-                     input::AbstractArray{Float64},
-                     output::AbstractArray{Float64};
-                     measure::PreMetric=SqEuclidean())
+function cycle!{n,m,T<:FloatingPoint}(s::TrainState{n,m}, 
+    net::NN{n}, 
+    input::StridedArray{T},
+    output::StridedArray{T};
+    metric::PreMetric=SqEuclidean())
 
     @assert compatible(net,s) "incompatible network and state"
     @assert size(input,1) == inputsize(net) "incompatible size of input and network"
@@ -59,7 +59,7 @@ function cycle!{n,m}(s::TrainState{n,m},
     end
 
     # backward pass
-    dmetric!(s.ds[end], s.ss[end], output, measure)
+    dmetric!(s.ds[end], s.ss[end], output, metric)
     for i in depth(net):-1:2
         dnfunc!(s.ds[i], s.as[i], s.ss[i], net.ns[i])
         A_mul_Bt!( s.dws[i],   s.ds[i], s.ss[i-1])
@@ -71,7 +71,7 @@ function cycle!{n,m}(s::TrainState{n,m},
     s
 end
 
-function calc(net::NN, input::AbstractArray{Float64})
+function calc{T<:FloatingPoint}(net::NN, input::StridedArray{T})
     @assert size(input,1) == inputsize(net) "incompatible size of input and network"
 
     # forward pass

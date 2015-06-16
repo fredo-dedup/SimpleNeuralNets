@@ -1,3 +1,4 @@
 - add bias
 - add path-SGD solver
 - switch to strided arrays, and ArrayViews ?
+- add weigths

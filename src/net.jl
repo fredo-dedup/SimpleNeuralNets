@@ -17,18 +17,19 @@ immutable NN{n}
     end
 end   
 
-NN{n}(ws::NTuple{n, Matrix{Float64}}, ns::NTuple{n, NodeFunc}) = NN{n}(ws, ns)
+# NN{n}(ws::NTuple{n, Matrix{FloatingPoint}}, ns::NTuple{n, NodeFunc}) = NN{n}(ws, ns)
 
 size(nn::NN) = nn.ls
 inputsize(nn::NN) = size(nn.ws[1],2)
 depth{n}(nn::NN{n}) = n
 
 
-function NN(sz::Vector{Int}, nf=Relu())
+function NN(sz::Vector{Int}, nf=Relu(); seed=0)
     @assert length(sz) > 1 "Net needs at least 2 layers"
     ws = Matrix{Float64}[]
+    srand(seed)
     for i in 1:length(sz)-1
-        push!(ws, randn(sz[i+1], sz[i]) .* 1/sqrt(sz[i+1]))
+        push!(ws, randn(sz[i+1], sz[i]) .* sqrt(6/(sz[i+1]+sz[i])))
     end
 
     if isa(nf, NodeFunc)
