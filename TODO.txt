@@ -1,4 +1,5 @@
-- add bias
+- add bias DONE
 - add path-SGD solver
-- switch to strided arrays, and ArrayViews ?
-- add weigths
+- switch to strided arrays, and ArrayViews ? DONE
+- add weigths for samples
+- add dropout

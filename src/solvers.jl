@@ -16,7 +16,8 @@ function sgd{T<:FloatingPoint}(nn::NN, λ0, μ,
     @assert minibatch < nsamples "minibatch size should be smaller than number of samples"
 
     state = TrainState(nn, minibatch)
-    dls = Array[ zeros(w) for w in nn.ws ] 
+    mdws = Array[ zeros(w) for w in nn.ws ] # momentum on weight gradient
+    mdbs = Array[ zeros(w) for w in nn.ws ] # momentum on bias   gradient
 
     # (subset==0) && (subset = shuffle(collect(1:size(X,2))))
 
@@ -46,14 +47,20 @@ function sgd{T<:FloatingPoint}(nn::NN, λ0, μ,
         cycle!(state, nn, sub(X,:,rg), sub(Y,:,rg), metric=metric)
         # isnan(state, out[1]) && break
 
-        l2norm = sqrt(sum( map(sumabs2, state.dws ) ) )
+        l2norm = sqrt(sum( map(sumabs2, state.dws ) ) +
+                      sum( map(sumabs2, state.dbs ) ) )
         λ    = - λ0 * (l2norm > 1. ? 1. / l2norm : 1.)
 
         for j in 1:depth(nn) # j = 1
             for l in 1:length(nn.ws[j])
-                tmp = λ * (1-μ) * state.dws[j][l] + μ * dls[j][l]
+                tmp = λ * (1-μ) * state.dws[j][l] + μ * mdws[j][l]
                 nn.ws[j][l] += tmp
-                dls[j][l] = tmp
+                mdws[j][l] = tmp
+            end
+            for l in 1:length(nn.bs[j])
+                tmp = λ * (1-μ) * state.dbs[j][l] + μ * mdbs[j][l]
+                nn.bs[j][l] += tmp
+                mdbs[j][l] = tmp
             end
         end
 
