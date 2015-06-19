@@ -22,7 +22,7 @@ function sgd{T<:FloatingPoint}(nn::NN, λ0, μ,
 
     resid = nsamples % minibatch
     resid > 0 && 
-        warn("# samples not a multiple of minibatch size, $resid tail samples will be ignored")
+        warn("# samples not a multiple of minibatch size, the last $resid samples will be ignored")
 
     pos = 1 # pos = 47501
     for k in 0:steps-1
