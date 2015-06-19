@@ -2,12 +2,13 @@ module SimpleNeuralNets
 
     using Reexport
     @reexport using Distances
-    using ArrayViews
+    # using ArrayViews
     
     import Base: size
     export NN, 
            size, depth, inputsize, nsamples,
-           cycle, cycle!, calc,
+           # cycle, cycle!, 
+           calc,
            Sigmoid, Tanh, Relu, SoftRelu,
            sgd
 

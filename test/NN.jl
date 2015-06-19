@@ -41,13 +41,14 @@
     reload("SimpleNeuralNets"); S=SimpleNeuralNets
 
     nn = S.NN((randn(10,20), randn(5,10)), (S.Relu(), S.Relu()))
+    nn = S.NN([10,10,10,10,1], [ S.Tanh(), S.Tanh()] )
     ts = S.TrainState(nn, 10)
 
     size(nn)
     size(ts)
 
     ts2 = S.cycle(nn, ones(20,10), ones(5,10))
-    S.cycle!(ts, nn, ones(20,10), ones(5,10))
+    S.cycle!(ts, nn, ones(10,10), ones(1,10))
 
     S.depth(nn)
 
@@ -73,12 +74,42 @@
     nn = S.NN((randn(1,1),), (S.SoftRelu(),))
     S.calc(nn, [1.])
 
+########### ANN3 #################################"
 
+    import Bokeh
+    # using ReverseDiffSource
+    reload("SimpleNeuralNets"); s = SimpleNeuralNets
 
-a = (45, 12)
-typeof(a)
-isa(a, NTuple{2, Float64})
+    f(x) = exp(-(x-1)^2/5)*cos(x)*sign(x)
 
+    xs = collect(-5:0.001:5)
+    X = Float64[ x for x in xs ]'
+    Y = Float64[ f(x) for x in xs ]'
 
-Pkg.generate("SimpleNeuralNets","MIT")
-Pkg.status()
+    nn = s.NN([1,10,10,10,1], [ s.Relu(), s.Tanh()] )
+    λ0, μ = 1e-3, 0.9
+    s.sgd(nn, λ0, μ, X, Y, freq=200, steps=10000)
+    λ0, μ = 1e-5, 0.999
+    s.sgd(nn, λ0, μ, X, Y, freq=200, steps=10000)
+
+    Bokeh.hold(true)
+    Bokeh.plot(f, -5:5, "k-")
+    px = collect(-5:0.01:5)
+    py = s.calc(nn, px')'
+    Bokeh.plot(px, py, "b-")
+    Bokeh.showplot("/tmp/plot.html")
+    Bokeh.hold(false)
+
+    nn = s.NN([1,10,10,10,1], [ s.SoftRelu(), s.Tanh()] )
+    λ0, μ = 1e-3, 0.9
+    s.sgd(nn, λ0, μ, X, Y, freq=200, steps=10000)
+    λ0, μ = 1e-3, 0.
+    s.sgd(nn, λ0, μ, X, Y, freq=1000, steps=10000)
+
+    Bokeh.hold(true)
+    Bokeh.plot(f, -5:5, "k-")
+    px = collect(-4:0.1:4)
+    py = s.calc(nn, px')'
+    Bokeh.plot(px, py, "b-")
+    Bokeh.showplot("/tmp/plot.html")
+    Bokeh.hold(false)
