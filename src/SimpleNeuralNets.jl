@@ -2,10 +2,9 @@ module SimpleNeuralNets
 
     using Reexport
     @reexport using Distances
-    # using ArrayViews
     
-    import Base: size
-    export NN, 
+    import Base: size, show #, slice
+    export NN, DataSet,
            size, depth, inputsize, nsamples,
            # cycle, cycle!, 
            calc,
@@ -17,6 +16,7 @@ module SimpleNeuralNets
     include("net.jl")
     include("state.jl")
     include("metrics.jl")
+    include("dataset.jl")
     include("solvers.jl")
 
 end # module

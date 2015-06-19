@@ -1,51 +1,36 @@
 
 
 
-function sgd{T<:FloatingPoint}(nn::NN, λ0, μ, 
-    X::Array{T}, 
-    Y::Array{T};
-    subset=1:size(X,2), 
-    minibatch=100, 
-    steps=100, 
-    freq=0,
-    weigths=0, 
-    metric::PreMetric=SqEuclidean())
+function sgd(
+    nn::NN,          # neural net
+    ts::DataSet, # training set
+    λ0, μ;           # gradient step, momentum
+    minibatch=100,   # mini-batch size
+    steps=100,       # number of steps to run
+    freq=0 )         # status update frequency, 0 = no updates
 
-    nsamples = size(X,2)
-    @assert size(Y,2) == nsamples "input and output do not have the same number of samples"
-    @assert minibatch < nsamples "minibatch size should be smaller than number of samples"
+    @assert minibatch < nsamples(ts) "minibatch size should be smaller than number of samples"
+
+    resid = nsamples(ts) % minibatch
+    resid > 0 && 
+        warn("# samples not a multiple of minibatch size, the last $resid samples will be ignored")
 
     state = TrainState(nn, minibatch)
     mdws = Array[ zeros(w) for w in nn.ws ] # momentum on weight gradient
     mdbs = Array[ zeros(w) for w in nn.ws ] # momentum on bias   gradient
 
-    # (subset==0) && (subset = shuffle(collect(1:size(X,2))))
-
-    resid = nsamples % minibatch
-    resid > 0 && 
-        warn("# samples not a multiple of minibatch size, the last $resid samples will be ignored")
-
     pos = 1 # pos = 47501
     for k in 0:steps-1
-        if pos + minibatch > nsamples
+        if pos + minibatch > nsamples(ts)
             rg = 1:minibatch
             pos = minibatch + 1
         else 
             rg = pos:pos+minibatch-1
             pos += minibatch
         end
-        # if pos + minibatch > length(subset)
-        #     rg = subset[pos:end]
-        #     pos = pos + minibatch - length(subset)
-        #     rg = vcat(rg, subset[1:pos-1])
-        # else 
-        #     rg = subset[pos:pos+minibatch-1]
-        #     pos += minibatch
-        # end
 
-        # cycle!(state, nn, X[:,rg], Y[:,rg], metric=metric)
-        cycle!(state, nn, sub(X,:,rg), sub(Y,:,rg), metric=metric)
-        # isnan(state, out[1]) && break
+        cycle!(state, nn, 
+               sub(ts.X,:,rg), sub(ts.Y,:,rg), ts.metric, sub(ts.weights, rg))
 
         l2norm = sqrt(sum( map(sumabs2, state.dws ) ) +
                       sum( map(sumabs2, state.dbs ) ) )
@@ -65,10 +50,9 @@ function sgd{T<:FloatingPoint}(nn::NN, λ0, μ,
         end
 
         if freq > 0 && (k % freq == 0)
-            pred = calc(nn, X)
-            m = mean(pred - Y)
-            s = std(pred - Y)
-            println("k : $k λ : $(round(λ0,4)) mean : $(round(m,5)) stderr : $(round(s,5))")
+            pred = calc(nn, ts.X)
+            dist = dot(ts.weights, colwise(ts.metric, pred, ts.Y)) ./ sum(ts.weights)
+            println("k : $k λ : $(round(λ0,4)) avg. dist : $(round(dist,5))")
         end
     end
 

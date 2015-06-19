@@ -1,5 +1,6 @@
 - add bias DONE
 - add path-SGD solver
 - switch to strided arrays, and ArrayViews ? DONE
-- add weigths for samples
+- add weigths for samples DONE
 - add dropout
+- add shuffling and splitting on datasets

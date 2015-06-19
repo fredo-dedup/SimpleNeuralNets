@@ -1,4 +1,11 @@
 
+
+    A = [1 2 ; 3 4]
+    B = [10, 10]
+    sum!(B, A)
+    sum!(A, B)
+
+
     using ReverseDiffSource
 
         Nn = [20,10,1]
@@ -40,7 +47,6 @@
 
     reload("SimpleNeuralNets"); S=SimpleNeuralNets
 
-    nn = S.NN((randn(10,20), randn(5,10)), (S.Relu(), S.Relu()))
     nn = S.NN([10,10,10,10,1], [ S.Tanh(), S.Tanh()] )
     ts = S.TrainState(nn, 10)
 
@@ -87,6 +93,23 @@
     Y = Float64[ f(x) for x in xs ]'
 
     nn = s.NN([1,10,10,10,1], [ s.Relu(), s.Tanh()] )
+
+    ts = s.TrainingSet(X, Y)
+    any(ts.weights .!= 1.0)
+
+    λ0, μ = 1e-3, 0.9
+    s.sgd(nn, ts, λ0, μ, freq=200, steps=1000)
+
+    ts2 = s.TrainingSet(X, Y, SqEuclidean(), rand(size(X,2)))
+    s.sgd(nn, ts2, λ0, μ, freq=200, steps=1000)
+
+    s.colwise(a,b,c)
+    length(a.weights)
+
+    px = s.calc(nn, X)
+    sum(s.colwise(ts2.metric, px, ts2.Y))
+
+
     λ0, μ = 1e-3, 0.9
     s.sgd(nn, λ0, μ, X, Y, freq=200, steps=10000)
     λ0, μ = 1e-5, 0.999

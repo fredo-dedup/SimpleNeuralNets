@@ -54,3 +54,11 @@ function NN(sz::Vector{Int}, nf=Relu(); seed=0)
 
     NN{length(ws)}(tuple(ws...), tuple(bs...), tuple(ns...))
 end
+
+
+function show(io::IO, nn::NN)
+    print(io, "neural net : ")
+    print(io, "layers sizes $( Int[ inputsize(nn) , size(nn)... ]), ")
+    print(io, "node functions $( map(typeof, nn.ns) )")
+    println(io,"")
+end
