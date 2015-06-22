@@ -30,11 +30,12 @@ inputsize(nn::NN) = size(nn.ws[1],2)
 depth{n}(nn::NN{n}) = n
 
 
-function NN(sz::Vector{Int}, nf=Relu(); seed=0)
+function NN(sz::Vector{Int}, nf=Relu(); seed::Integer=0)
     @assert length(sz) > 1 "Net needs at least 2 layers"
     ws = Matrix{Float64}[]
     bs = Vector{Float64}[]
-    srand(seed)
+
+    (seed != 0) && srand(seed)
     for i in 1:length(sz)-1
         push!(ws, randn(sz[i+1], sz[i]) .* sqrt(6/(sz[i+1]+sz[i])))
         push!(bs, zeros(sz[i+1]))

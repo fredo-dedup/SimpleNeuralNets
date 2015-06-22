@@ -3,10 +3,10 @@ module SimpleNeuralNets
     using Reexport
     @reexport using Distances
     
-    import Base: size, show #, slice
+    import Base: size, show, split, shuffle! #, slice
     export NN, DataSet,
            size, depth, inputsize, nsamples,
-           # cycle, cycle!, 
+           split, shuffle!,
            calc,
            Sigmoid, Tanh, Relu, SoftRelu,
            sgd
